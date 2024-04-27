@@ -2,16 +2,18 @@ import logging
 import os
 import sqlite3 as sqlite
 import threading
+import pymongo
+import pymongo.errors
 
 class Store:
     database: str
 
-    def __init__(self, db_path):
-        self.database = os.path.join(db_path, "be.db")
-        #self.client = pymongo.MongoClient('mongodb://localhost:27017')
+    def __init__(self):
+        #self.database = os.path.join(db_path, "be.db")
         self.init_tables()
 
     def init_tables(self):
+        '''
         try:
             conn = self.get_db_conn()
             conn.execute(
@@ -42,13 +44,29 @@ class Store:
                 "PRIMARY KEY(order_id, book_id))"
             )
 
-            conn.commit()
+            conn.commit()(variable) db: Unbound
         except sqlite.Error as e:
             logging.error(e)
             conn.rollback()
+        '''
+        try:
+            db = self.get_db_conn()
 
-    def get_db_conn(self) -> sqlite.Connection:
-        return sqlite.connect(self.database)
+            collection = db['user']
+            collection.create_index('user_id', unique=True)
+            collection = db['user_store']
+            collection.create_index('user_id')
+            collection = db['store']
+            collection = db['new_order']
+            collection = db['new_order_detail']
+        except pymongo.errors.PyMongoError as e:
+            logging.error(e)
+
+
+    def get_db_conn(self) -> pymongo.MongoClient:
+        #return sqlite.connect(self.database)
+        client = pymongo.MongoClient('mongodb://localhost:27017')
+        return client['bookstore_be']
 
 
 database_instance: Store = None
@@ -56,9 +74,9 @@ database_instance: Store = None
 init_completed_event = threading.Event()
 
 
-def init_database(db_path):
+def init_database():
     global database_instance
-    database_instance = Store(db_path)
+    database_instance = Store()
 
 
 def get_db_conn():

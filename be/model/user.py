@@ -4,6 +4,7 @@ import logging
 import sqlite3 as sqlite
 from be.model import error
 from be.model import db_conn
+import pymongo
 
 # encode a json string like:
 #   {
@@ -57,13 +58,15 @@ class User(db_conn.DBConn):
         try:
             terminal = "terminal_{}".format(str(time.time()))
             token = jwt_encode(user_id, terminal)
-            self.conn.execute(
-                "INSERT into user(user_id, password, balance, token, terminal) "
-                "VALUES (?, ?, ?, ?, ?);",
-                (user_id, password, 0, token, terminal),
-            )
-            self.conn.commit()
-        except sqlite.Error:
+            # self.conn.execute(
+            #     "INSERT into user(user_id, password, balance, token, terminal) "
+            #     "VALUES (?, ?, ?, ?, ?);",
+            #     (user_id, password, 0, token, terminal),
+            # )
+            # self.conn.commit()
+            document = {"_id": user_id, "user_id": user_id, "password": password, "balance": 0, "token": token, "terminal": terminal}
+            self.db['user'].insert_one(document)
+        except pymongo.errors.PyMongoError as e:
             return error.error_exist_user_id(user_id)
         return 200, "ok"
 
